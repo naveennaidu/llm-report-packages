@@ -5,7 +5,7 @@ import {
   HttpInstrumentation,
   HttpInstrumentationConfig,
 } from "@opentelemetry/instrumentation-http";
-import { MyCustomExporter } from "./exporter";
+import { LlmReportExporter } from "./exporter";
 
 const LLM_REPORT_API_KEY =
   "f318801ca9b6860fadb1bf1c328ba8ccc08757e96aa1ffae1ac550b0a0f006ba";
@@ -31,9 +31,7 @@ const configuration: HttpInstrumentationConfig = {
   },
 };
 
-const sdk = new NodeSDK({
-  traceExporter: new MyCustomExporter(LLM_REPORT_API_KEY),
+export const sdk = new NodeSDK({
+  traceExporter: new LlmReportExporter(LLM_REPORT_API_KEY),
   instrumentations: [new HttpInstrumentation(configuration)],
 });
-
-sdk.start();

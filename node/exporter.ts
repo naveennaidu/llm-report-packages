@@ -2,7 +2,7 @@ import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import axios from "axios";
 import { ExportResultCode, ExportResult } from "@opentelemetry/core";
 
-export class MyCustomExporter implements SpanExporter {
+export class LlmReportExporter implements SpanExporter {
   private serverAddress = "http://localhost:3000/api/v1/log/openai";
   private xApiKey: string;
   constructor(apiKey: string) {
