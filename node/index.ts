@@ -1,1 +1,1 @@
-export { sdk } from "./instrumentation";
+export { llmReportSdk } from "./instrumentation";

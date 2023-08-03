@@ -1,5 +1,5 @@
 /*instrumentation.ts*/
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import { NodeSDK, api } from "@opentelemetry/sdk-node";
 import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-node";
 import {
   HttpInstrumentation,
@@ -7,10 +7,9 @@ import {
 } from "@opentelemetry/instrumentation-http";
 import { LlmReportExporter } from "./exporter";
 
-const LLM_REPORT_API_KEY =
-  "f318801ca9b6860fadb1bf1c328ba8ccc08757e96aa1ffae1ac550b0a0f006ba";
 const configuration: HttpInstrumentationConfig = {
   ignoreOutgoingRequestHook: (options) => {
+    // Only trace requests to the OpenAI API
     return options.hostname !== "api.openai.com";
   },
   responseHook: (span, response) => {
@@ -31,7 +30,9 @@ const configuration: HttpInstrumentationConfig = {
   },
 };
 
-export const sdk = new NodeSDK({
-  traceExporter: new LlmReportExporter(LLM_REPORT_API_KEY),
-  instrumentations: [new HttpInstrumentation(configuration)],
-});
+export const llmReportSdk = (apiKey: string) => {
+  return new NodeSDK({
+    traceExporter: new LlmReportExporter(apiKey),
+    instrumentations: [new HttpInstrumentation(configuration)],
+  });
+};

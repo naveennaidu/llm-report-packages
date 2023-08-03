@@ -1,6 +1,7 @@
 import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import axios from "axios";
 import { ExportResultCode, ExportResult } from "@opentelemetry/core";
+import { AttributeValue } from "@opentelemetry/api";
 
 export class LlmReportExporter implements SpanExporter {
   private serverAddress = "http://localhost:3000/api/v1/log/openai";
@@ -15,23 +16,23 @@ export class LlmReportExporter implements SpanExporter {
   ) {
     spans.forEach((span) => {
       if (!checkOpenAIUrl(span.attributes["http.url"]?.toString())) return;
-
-      console.log(span.attributes);
-      //TODO: Map logData
-      let logData = { url: span.attributes["http.url"] };
       axios
-        .post(this.serverAddress, logData, {
-          headers: {
-            "Content-Type": "application/json",
-            "X-Api-Key": this.xApiKey,
+        .post(
+          this.serverAddress,
+          {
+            attributes: span.attributes,
+            startTime: span.startTime,
+            endTime: span.endTime,
+            duration: span.duration,
           },
-        })
-        .then((response) => {
-          console.log(`StatusCode: ${response.status}`);
-        })
-        .catch((error) => {
-          console.error("Error while sending log data:", error);
-        });
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": this.xApiKey,
+            },
+          }
+        )
+        .catch((_) => {});
     });
 
     return resultCallback({ code: ExportResultCode.SUCCESS });
