@@ -4,7 +4,7 @@ import { ExportResultCode, ExportResult } from "@opentelemetry/core";
 import { numTokensFromMessages, getTokenCount, sha256 } from "./utils";
 
 export class LlmReportExporter implements SpanExporter {
-  private serverAddress = "http://localhost:3000/api/v1/log/openai";
+  private serverAddress = "https://llm.report/api/v1/log/openai";
   private xApiKey: string;
   constructor(apiKey: string) {
     this.xApiKey = apiKey;
