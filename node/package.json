@@ -2,9 +2,13 @@
   "name": "llm-report-node",
   "version": "1.0.0",
   "description": "Log OpenAI requests to llm.report",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "Naveennaidu",
   "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@opentelemetry/api": "^1.4.1",
     "@opentelemetry/instrumentation-http": "^0.41.1",
