@@ -1,5 +1,5 @@
 /*instrumentation.ts*/
-import { NodeSDK, api } from "@opentelemetry/sdk-node";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 import {
   HttpInstrumentation,
   HttpInstrumentationConfig,
@@ -12,7 +12,7 @@ const configuration: HttpInstrumentationConfig = {
     return options.hostname !== "api.openai.com";
   },
   requestHook: (span, options: any) => {
-    // Intercept body
+    // Intercept request to add body to span
     const chunks: Buffer[] = [];
     const originalWrite = options.write;
     const originalEnd = options.end;
@@ -32,11 +32,13 @@ const configuration: HttpInstrumentationConfig = {
     return options;
   },
   startOutgoingSpanHook: (request) => {
+    // Add request headers to span
     return {
       "http.request.headers": JSON.stringify(request.headers),
     } as any;
   },
   responseHook: (span, response: any) => {
+    // Add response headers and body to span
     span.setAttribute(
       "http.response.headers",
       JSON.stringify(response.headers)
@@ -53,9 +55,12 @@ const configuration: HttpInstrumentationConfig = {
   },
 };
 
-export const llmReportSdk = (apiKey: string) => {
+export const llmReportSdk = (
+  apiKey: string,
+  loggingApiUrl: string = "https://llm.report/api/v1/log/openai"
+) => {
   return new NodeSDK({
-    traceExporter: new LlmReportExporter(apiKey),
+    traceExporter: new LlmReportExporter(apiKey, loggingApiUrl),
     instrumentations: [new HttpInstrumentation(configuration)],
   });
 };

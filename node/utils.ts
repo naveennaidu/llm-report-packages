@@ -74,3 +74,8 @@ export function sha256(key: string): string {
   hash.update(key);
   return hash.digest("hex");
 }
+
+export function hrTimeToMilliseconds(hrTime: [number, number]): number {
+  const milliseconds = hrTime[0] * 1000 + hrTime[1] / 1000000;
+  return milliseconds;
+}

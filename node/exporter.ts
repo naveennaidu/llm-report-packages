@@ -1,13 +1,20 @@
 import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import axios from "axios";
 import { ExportResultCode, ExportResult } from "@opentelemetry/core";
-import { numTokensFromMessages, getTokenCount, sha256 } from "./utils";
+import {
+  numTokensFromMessages,
+  getTokenCount,
+  sha256,
+  hrTimeToMilliseconds,
+} from "./utils";
 
 export class LlmReportExporter implements SpanExporter {
-  private serverAddress = "https://llm.report/api/v1/log/openai";
+  private serverAddress: string;
   private xApiKey: string;
-  constructor(apiKey: string) {
+
+  constructor(apiKey: string, serverAddress: string) {
     this.xApiKey = apiKey;
+    this.serverAddress = serverAddress;
   }
 
   export(
@@ -17,14 +24,18 @@ export class LlmReportExporter implements SpanExporter {
     spans.forEach(async (span) => {
       if (checkOpenAIUrl(span.attributes["http.url"]?.toString())) {
         try {
-          const data = convertToOutputFormat(span.attributes);
+          const data = {
+            ...convertToOutputFormat(span.attributes),
+            duration_in_ms: hrTimeToMilliseconds(span.duration),
+          };
+
           await axios.post(this.serverAddress, data, {
             headers: {
               "x-api-key": this.xApiKey,
             },
           });
         } catch (error) {
-          console.log(error);
+          console.error(error);
         }
       }
     });
@@ -44,13 +55,15 @@ function checkOpenAIUrl(url?: string): boolean {
 
 function convertToOutputFormat(attributes: any) {
   let rb = attributes["http.response.body"];
-  let streamed = false;
   let data: any;
   let completion = "";
-
   try {
     data = JSON.parse(rb);
-    completion = data["choices"][0]["message"]["content"];
+    try {
+      completion = data["choices"][0]["message"]["content"];
+    } catch (error) {
+      completion = "";
+    }
   } catch {
     rb = rb
       .split("\n\n")
@@ -67,17 +80,20 @@ function convertToOutputFormat(attributes: any) {
     });
 
     data = JSON.parse(rb[rb.length - 1]);
-    streamed = true;
   }
 
   const requestHeaders = attributes["http.request.headers"];
   const parsedRequestHeaders = JSON.parse(requestHeaders);
-  const authorization = parsedRequestHeaders["Authorization"].split(" ")[1];
-  delete parsedRequestHeaders["Authorization"];
-  const userId = parsedRequestHeaders["X-User-Id"];
+  const authorization = parsedRequestHeaders["Authorization"];
+  if (authorization) {
+    delete parsedRequestHeaders["Authorization"];
+  }
+  const userId = parsedRequestHeaders["X-User-Id"] ?? undefined;
 
   const requestBody = attributes["http.request.body"];
   const parsedRequestBody = JSON.parse(requestBody);
+  const model = parsedRequestBody["model"] ?? "";
+  const streamed = parsedRequestBody["stream"] ?? false;
   let prompt_tokens = 0;
   let completion_tokens = 0;
 
@@ -85,21 +101,28 @@ function convertToOutputFormat(attributes: any) {
     prompt_tokens = data["usage"]["prompt_tokens"];
     completion_tokens = data["usage"]["completion_tokens"];
   } else {
-    prompt_tokens = numTokensFromMessages(parsedRequestBody["messages"]);
-    completion_tokens = getTokenCount(completion);
+    if (parsedRequestBody["messages"]) {
+      prompt_tokens = numTokensFromMessages(parsedRequestBody["messages"]);
+      completion_tokens = getTokenCount(completion);
+    }
   }
 
+  const hashed_key =
+    authorization.split(" ")[1] && authorization.split(" ")[1] !== "undefined"
+      ? sha256(authorization.split(" ")[1])
+      : undefined;
+
   return {
-    provider_id: data["id"],
+    provider_id: data["id"] ?? "",
     user_id: userId,
     url: attributes["http.url"],
     method: attributes["http.method"],
     status: attributes["http.status_code"],
-    streamed: streamed,
-    model: data["model"],
+    streamed,
+    model,
     prompt_tokens,
     completion_tokens,
-    hashed_key: sha256(authorization),
+    hashed_key,
     completion: completion,
     request_headers: JSON.stringify(parsedRequestHeaders),
     request_body: requestBody,
