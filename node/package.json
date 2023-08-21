@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.4.1",
-    "@opentelemetry/instrumentation-http": "^0.41.1",
-    "@opentelemetry/sdk-node": "^0.41.1",
+    "@opentelemetry/core": "^1.15.2",
+    "@opentelemetry/instrumentation-http": "^0.41.2",
+    "@opentelemetry/sdk-node": "^0.41.2",
+    "@opentelemetry/sdk-trace-base": "^1.15.2",
     "axios": "^1.4.0",
     "gpt3-tokenizer": "^1.1.5"
   },
